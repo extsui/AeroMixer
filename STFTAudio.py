@@ -24,6 +24,44 @@ INIT --> LOAD: load()
 """
 class STFTAudio:
     STFT_SIZE = 4096
+    FREQ_PROBE_NUM = 32
+    LOWER_HERTZ = 20.
+    UPPER_HERTZ = 20000.
+
+    """
+    周波数範囲[lower_hertz:upper_hertz]を対数スケールで
+    freq_probe_numだけ区切った要素配列を作成する．
+    """
+    def __fftprobe(self, fft_size, freq_probe_num, lower_hertz, upper_hertz):
+        freq_list = np.fft.fftfreq(fft_size, 1.0/44100)
+        freq_probe_list = [lower_hertz *
+                             ((upper_hertz/lower_hertz) ** (x/(freq_probe_num-1.0)))
+                             for x in range(freq_probe_num)]
+        freq_probe_index_list = []
+        probe_index = 0
+
+        for i in range(fft_size):
+            # 近い周波数値の取得
+            # 連続する2つの周波数値を取得して小さい誤差の方を取り出すのが
+            # 本来ならば望ましい．しかし，そうした場合，取得するポイント数が
+            # 多すぎるとうまく配列を構成できない(FFT_SIZE=4096, num=32)．
+            # このため，誤差は大きくなるが，1つの周波数値だけ確認している．
+            if freq_list[i] > freq_probe_list[probe_index]:
+                freq_probe_index_list.append(i)
+                probe_index += 1
+                if probe_index >= freq_probe_num:
+                    break
+
+        if probe_index is not freq_probe_num:
+            raise ValueError('FREQ_PROBE_NUM is too large compared to STFT_SIZE')
+
+        # --- debug ---
+        #print('      index    Freq')
+        #for index in freq_probe_index_list:
+        #    print('%3d: [%5d] %8f' % (freq_probe_index_list.index(index),
+        #                              index, freq_list[index]))
+
+        return freq_probe_index_list
 
     def __init__(self):
         self.pa = pyaudio.PyAudio()
@@ -32,6 +70,10 @@ class STFTAudio:
         self.wavedata = None
         self.hamming_win = sp.hamming(self.STFT_SIZE)
         self.frame_pos = 0
+        self.freq_probe_index_list = self.__fftprobe(self.STFT_SIZE,
+                                                     self.FREQ_PROBE_NUM,
+                                                     self.LOWER_HERTZ,
+                                                     self.UPPER_HERTZ)
 
     def __callback(self, in_data, frame_count, time_info, status):
         self.frame_pos += frame_count
@@ -73,14 +115,13 @@ class STFTAudio:
         self.stream.stop_stream()
 
     def stft(self):
-        fscale_hotspot = [2, 3, 4, 5, 6, 7, 8, 9, 12, 14, 18, 22, 27, 34, 43, 53, 66, 83, 103, 129, 161, 201, 251, 313, 391, 488, 610, 762, 952, 1190, 1487, 1858]
         x = self.wavedata[self.frame_pos:self.frame_pos+self.STFT_SIZE]
         # 一番最後はSTFTできないのでゼロ埋めダミーデータで代用
         if len(x) != self.STFT_SIZE:
-            return map(int, np.zeros(len(fscale_hotspot)))
+            return map(int, np.zeros(len(self.freq_probe_index_list)))
         X = sp.fft(x * self.hamming_win)
         # 振幅スペクトルの計算(パワースペクトルは重いのでやらない)
-        spectrum = np.abs(X[fscale_hotspot])
+        spectrum = np.abs(X[self.freq_probe_index_list])
         # 値が0-32あたりに収まるように調整
         spectrum = np.sqrt(spectrum) * 2
         spectrum = map(int, spectrum)
