@@ -48,11 +48,11 @@ class UsbDevice:
             self.dev.attach_kernel_driver(self.interface)
         usb.util.release_interface(self.dev, self.interface)
 
-    def read(self, size):
-        return self.read_ep.read(size, timeout=1000)
+    def read(self, size, timeout=None):
+        return self.read_ep.read(size, timeout)
 
-    def write(self, data):
-        return self.write_ep.write(data, timeout=1000)
+    def write(self, data, timeout=None):
+        return self.write_ep.write(data, timeout)
 
 if __name__ == '__main__':
     ID_VENDOR  = 0x0000
