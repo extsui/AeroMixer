@@ -1,2 +1,8 @@
 # OAuth2 Dropbox token file
 token_store.txt
+
+# Following Directory are managed by AeroMixer
+download/*
+!download/.gitkeep
+tmp/*
+!tmp/.gitkeep
