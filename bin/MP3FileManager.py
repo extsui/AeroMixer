@@ -18,6 +18,7 @@ class MP3FileManager:
     SORT_BY_RANDOM = 1
 
     def __init__(self):
+        random.seed()
         self.__mp3_list = None
         self.__is_connected = False
         self.dbd = DropboxDownloader.DropboxDownloader(self.__TOKEN_PATH)
@@ -54,21 +55,27 @@ class MP3FileManager:
     def download_file(self):
         from_path = self.get()
         to_path = self.__DOWNLOAD_PATH + from_path
-        print('download_file: ' + to_path)
+        #print('download_file: ' + to_path)
         if not os.path.isfile(to_path):
             if self.__is_connected:
                 self.dbd.do_get(from_path, to_path)
             else:
                 print('BUG')
-        return to_path
 
     def to_wave(self):
-        """ ../download/xxx.mp3 --> ../tmp/xxx.wav """
+        """  ../download/xxx.mp3 --> ../tmp/xxx.wav """
         mp3_path = self.__DOWNLOAD_PATH + self.get()
         wave_path = self.__TMP_PATH + os.path.basename(mp3_path).replace('.mp3', '.wav')
-        subprocess.call(['ffmpeg', '-i', mp3_path,
-                         '-ac', '1', '-ar', '44100', wave_path],
-                        stderr=-1)
+        # TODO: waveファイルが存在した場合失敗する
+        subprocess.check_call(['ffmpeg', '-i', mp3_path,
+                               '-ac', '1', '-ar', '44100', wave_path],
+                              stderr=-1)
+        return wave_path
+
+    def rm_wave(self):
+        wave_path = self.__TMP_PATH + os.path.basename(self.get()).replace('.mp3', '.wav')
+        if os.path.isfile(wave_path):
+            os.unlink(wave_path)
 
     # DEBUG
     def play_wave(self):
@@ -87,5 +94,15 @@ if __name__ == '__main__':
     mp3.next()
     print(mp3.get())
     mp3.prev()
-    print(mp3.get())
+
+    print('download:' + mp3.get())
     mp3.download_file()
+
+    wave_path = mp3.to_wave()
+    print('converted:' + wave_path)
+
+    print('playing...')
+    mp3.play_wave()
+
+    print('unlink')
+    mp3.rm_wave()
