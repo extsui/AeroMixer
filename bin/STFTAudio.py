@@ -111,6 +111,7 @@ class STFTAudio:
         return spectrum
 
     def close(self):
+        self.frame_pos = 0
         self.stop()
         self.stream.close()
         self.wavefile.close()
