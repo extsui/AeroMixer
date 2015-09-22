@@ -5,23 +5,6 @@ import scipy as sp
 import pyaudio
 import wave
 
-"""
-状態遷移予定
-
-LOAD --> PLAY: start()
-PLAY --> STOP: stop()
-STOP --> PLAY: start()
-PLAY --> INIT:  - (After require close())
-INIT --> LOAD: load()
-
-     + ----------------+
-     v                 |
-==> INIT --> LOAD --> PLAY
-                       ^
-                       |
-                       v
-                      STOP
-"""
 class STFTAudio:
     STFT_SIZE = 4096
     FREQ_PROBE_NUM = 32
@@ -131,6 +114,12 @@ class STFTAudio:
         self.stop()
         self.stream.close()
         self.wavefile.close()
+
+    def __del__(self):
+        """
+        close()で行っていたが，2度目のopen()に失敗するため，
+        デストラクタでterminate()を呼び出す．
+        """
         self.pa.terminate()
 
 if __name__ == '__main__':
