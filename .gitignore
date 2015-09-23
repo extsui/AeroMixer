@@ -6,3 +6,5 @@ download/*
 !download/.gitkeep
 tmp/*
 !tmp/.gitkeep
+
+bin/*.pyc

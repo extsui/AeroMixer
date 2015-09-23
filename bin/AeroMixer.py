@@ -3,7 +3,16 @@
 import MP3FileManager as MP3
 import STFTAudio as STFT
 
+import sys
 import exceptions
+
+def read_timeout(timeout):
+    from select import select
+    rlist, _, _ = select([sys.stdin], [], [], timeout)
+    if rlist:
+        return sys.stdin.readline().strip()
+    else:
+        return None
 
 stft = STFT.STFTAudio()
 mp3 = MP3.MP3FileManager()
@@ -33,13 +42,13 @@ while True:
     stft.start()
 
     while stft.is_playing() or stft.is_stopping():
-        s = raw_input('(s|p|f)> ')
-        if s == 's':
+        s = read_timeout(timeout=0.100)
+        if stft.is_playing() and s is None:
+            print(stft.stft())
+        elif s == 's':
             stft.start()
         elif s == 'p':
             stft.stop()
-        elif s == 'f':
-            print stft.stft()
 
     stft.close()
     mp3.rm_wave()
