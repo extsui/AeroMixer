@@ -60,9 +60,18 @@ while True:
     elif state == STATE_PLAY:
         if not stft.is_playing():
             state = STATE_FINISH
-        s = read_timeout(timeout=0.100)
+        s = read_timeout(timeout=0.050)
         if s is None:
-            print(stft.stft())
+            spec = stft.stft()
+            import os
+            os.system('clear')
+            for y in range(32)[::-1]:
+                for x in spec:
+                    if x > y:
+                        sys.stdout.write('___ ')
+                    else:
+                        sys.stdout.write('    ')
+                sys.stdout.write('\n')
         elif s == 's':
             stft.stop()
             state = STATE_STOP
