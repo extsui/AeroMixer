@@ -6,10 +6,14 @@ import pyaudio
 import wave
 
 class STFTAudio:
+    """ スペクトル表示のパラメータ """
     STFT_SIZE = 4096
     FREQ_PROBE_NUM = 32
     LOWER_HERTZ = 20.
     UPPER_HERTZ = 20000.
+
+    """ FFTの周期(秒単位) """
+    STFT_INTERVAL = 0.050
 
     """
     周波数範囲[lower_hertz:upper_hertz]を対数スケールで

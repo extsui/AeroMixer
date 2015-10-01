@@ -4,6 +4,7 @@ import MP3FileManager as MP3
 import STFTAudio as STFT
 import IOWrapper as IO
 
+import sys
 import exceptions
 
 STATE_INIT    = 0
@@ -18,8 +19,15 @@ state = STATE_INIT
 
 print('AeroMixer: start')
 
-# TODO: --usbオプションが付いた場合，引数にTrueを渡す
-io = IO.IOWrapper(usb=False)
+""" '--usb'を指定した場合，出力先をUSBに変更(通常は標準出力) """
+argv = sys.argv
+argc = len(argv)
+if argc == 2 and argv[1] == '--usb':
+    usb = True
+else:
+    usb = False
+    print('AeroMixer: no-usb')
+io = IO.IOWrapper(usb)
 
 while True:
 
@@ -51,7 +59,7 @@ while True:
     elif state == STATE_PLAY:
         if not stft.is_playing():
             state = STATE_FINISH
-        s = io.input(timeout=0.050)
+        s = io.input(timeout=STFT.STFTAudio.STFT_INTERVAL)
         if s is None:
             io.output_spectrum(stft.stft())
         elif s == IO.IOWrapper.INPUT_SELECT:
