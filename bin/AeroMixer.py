@@ -40,31 +40,40 @@ while True:
         state = STATE_MODE
 
     elif state == STATE_MODE:
-        #workaround
-        now_mode = mode.get()
-        print('[%d/%d] %s' % (now_mode['pos'], now_mode['len'], now_mode['name']))
+        cur_mode = mode.get()
+        print('[%d/%d] %s' % (cur_mode['pos'], cur_mode['len'], cur_mode['name']))
         s = io.input()
         if s == IO.IOWrapper.INPUT_NEXT:
             mode.next()
         elif s == IO.IOWrapper.INPUT_PREV:
             mode.prev()
         elif s == IO.IOWrapper.INPUT_SELECT:
-            # TODO: ここでソート
+            if mode.is_require_name_sort() is True:
+                mp3.sort(MP3.MP3FileManager.SORT_BY_NAME)
+            elif mode.is_require_random_sort() is True:
+                mp3.sort(MP3.MP3FileManager.SORT_BY_RANDOM)
             state = STATE_SELECT
         elif s == IO.IOWrapper.INPUT_QUIT:
             state = STATE_QUIT
 
     elif state == STATE_SELECT:
         io.output_music_name(mp3.get()['name'])
-        s = io.input()
-        if s == IO.IOWrapper.INPUT_NEXT:
-            mp3.next()
-        elif s == IO.IOWrapper.INPUT_PREV:
-            mp3.prev()
-        elif s == IO.IOWrapper.INPUT_SELECT:
+        """
+        単曲再生: 選曲
+        連続再生/ランダム再生: スキップ
+        """
+        if mode.is_auto_mode() is True:
             state = STATE_PREPARE
-        elif s == IO.IOWrapper.INPUT_QUIT:
-            state = STATE_QUIT
+        else:
+            s = io.input()
+            if s == IO.IOWrapper.INPUT_NEXT:
+                mp3.next()
+            elif s == IO.IOWrapper.INPUT_PREV:
+                mp3.prev()
+            elif s == IO.IOWrapper.INPUT_SELECT:
+                state = STATE_PREPARE
+            elif s == IO.IOWrapper.INPUT_QUIT:
+                state = STATE_QUIT
 
     elif state == STATE_PREPARE:
         mp3.download_file()
@@ -95,6 +104,7 @@ while True:
     elif state == STATE_FINISH:
         stft.close()
         mp3.rm_wave()
+        mp3.next()
         state = STATE_SELECT
 
     elif state == STATE_QUIT:
