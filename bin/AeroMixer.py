@@ -4,6 +4,7 @@ import MP3FileManager as MP3
 import STFTAudio as STFT
 import IOWrapper as IO
 import ModeManager as MM
+import VolumeController as VC
 
 import sys
 import exceptions
@@ -37,6 +38,7 @@ while True:
         stft = STFT.STFTAudio()
         mp3 = MP3.MP3FileManager()
         mode = MM.ModeManager()
+        vol = VC.VolumeController()
         state = STATE_MODE
 
     elif state == STATE_MODE:
@@ -87,6 +89,10 @@ while True:
         s = io.input(timeout=STFT.STFTAudio.STFT_INTERVAL)
         if s is None:
             io.output_spectrum(stft.stft())
+        elif s == IO.IOWrapper.INPUT_NEXT:
+            vol.plus(5)
+        elif s == IO.IOWrapper.INPUT_PREV:
+            vol.plus(-5)
         elif s == IO.IOWrapper.INPUT_SELECT:
             stft.stop()
             state = STATE_STOP
