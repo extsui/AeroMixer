@@ -3,7 +3,7 @@
 import MP3FileManager as MP3
 import STFTAudio as STFT
 import IOWrapper as IO
-import PlayMode as PM
+import ModeManager as MM
 
 import sys
 import exceptions
@@ -36,26 +36,26 @@ while True:
     if state == STATE_INIT:
         stft = STFT.STFTAudio()
         mp3 = MP3.MP3FileManager()
-        mode = PM.PlayMode()
-        mp3.download_list()
-        mp3.sort(MP3.MP3FileManager.SORT_BY_NAME)
+        mode = MM.ModeManager()
         state = STATE_MODE
 
     elif state == STATE_MODE:
         #workaround
-        print(mode.get())
+        now_mode = mode.get()
+        print('[%d/%d] %s' % (now_mode['pos'], now_mode['len'], now_mode['name']))
         s = io.input()
         if s == IO.IOWrapper.INPUT_NEXT:
             mode.next()
         elif s == IO.IOWrapper.INPUT_PREV:
             mode.prev()
         elif s == IO.IOWrapper.INPUT_SELECT:
+            # TODO: ここでソート
             state = STATE_SELECT
         elif s == IO.IOWrapper.INPUT_QUIT:
             state = STATE_QUIT
 
     elif state == STATE_SELECT:
-        io.output_music_name(mp3.get())
+        io.output_music_name(mp3.get()['name'])
         s = io.input()
         if s == IO.IOWrapper.INPUT_NEXT:
             mp3.next()
