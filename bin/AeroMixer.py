@@ -9,6 +9,14 @@ import VolumeController as VC
 import sys
 import exceptions
 
+import logging
+logger = logging.getLogger('AeroMixer')
+logger.setLevel(logging.DEBUG)
+handler = logging.FileHandler('../AeroMixer.log')
+formatter = logging.Formatter('[%(asctime)s] %(module)s: %(message)s')
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
 STATE_INIT    = 0
 STATE_MODE    = 1
 STATE_SELECT  = 2
@@ -20,7 +28,7 @@ STATE_QUIT    = 7
 
 state = STATE_INIT
 
-print('AeroMixer: start')
+logger.debug('start')
 
 """ '--usb'を指定した場合，出力先をUSBに変更(通常は標準出力) """
 argv = sys.argv
@@ -29,7 +37,6 @@ if argc == 2 and argv[1] == '--usb':
     usb = True
 else:
     usb = False
-    print('AeroMixer: no-usb')
 io = IO.IOWrapper(usb)
 
 while True:
@@ -39,6 +46,7 @@ while True:
         mp3 = MP3.MP3FileManager()
         mode = MM.ModeManager()
         vol = VC.VolumeController()
+        io.open()
         state = STATE_MODE
 
     elif state == STATE_MODE:
@@ -114,6 +122,8 @@ while True:
         state = STATE_SELECT
 
     elif state == STATE_QUIT:
+        """ ScreenThreadの終了処理実行(usbの場合は何もしない) """
+        io.close()
         # STOPからQUITになった場合，tmp/にwavファイルが残るけど，
         # アンマウント時に削除されるので問題ない．
         break
@@ -121,4 +131,4 @@ while True:
     else:
         raise exceptions.SystemError('STATE ERROR')
 
-print('AeroMixer: exit')
+logger.debug('exit')

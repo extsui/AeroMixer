@@ -1,8 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import sys
 import exceptions
 import UsbDevice
+import socket
+import ScreenThread
+import threading
+import numpy as np
 
 class IOWrapper:
     INPUT_NEXT   = '+'
@@ -12,55 +15,47 @@ class IOWrapper:
 
     def __init__(self, usb=False):
         """ 出力先をUSBか標準出力にするかを設定 """
-        if usb is False:
+        """ 具体的な処理の違いはopen()以降 """
+        self.usb = usb
+
+    def open(self):
+        if self.usb is False:
             self.dev = None
+            self.host_so, dev_so = \
+                socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM, 0)
+            self.kill_event = threading.Event()
+            self.kill_event.clear()
+            """ ScreenThreadは非同期動作であり，ソケットを通して通信 """
+            self.screen = ScreenThread.ScreenThread(dev_so, self.kill_event)
+            self.screen.start()
         else:
             self.dev = UsbDevice.UsbDevice(0x0000, 0x0000)
 
-    def read(self, timeout=None):
-        """ 1文字入力(改行は削除) """
-        import select
-        rlist, _, _ = select.select([sys.stdin], [], [], timeout)
-        if rlist:
-            return sys.stdin.readline().strip()
+    def close(self):
+        if self.dev is None:
+            self.kill_event.set()
+            self.screen.join()
         else:
-            return None
+            pass
 
     def input(self, timeout=None):
         if self.dev is None:
-            return self.read(timeout)
+            self.host_so.settimeout(timeout)
+            try:
+                in_data = self.host_so.recv(1)
+            except:
+                in_data = None
+            return in_data
         else:
             raise exceptions.NotImplementedError
     
     def output_music_name(self, music_name):
-        # TODO: USBの場合，SJISへの変換が必要
-        if self.dev is None:
-            """
-            標準出力の場合，明示的に曲名を保存して
-            output_spectrum()時に表示する．
-            USBの場合，マイコンで曲名を保存しておく．
-            """
-            self.music_name = music_name
-            print(music_name)
-        else:
-            raise exceptions.NotImplementedError
+        pass
 
     def output_spectrum(self, spec):
         if self.dev is None:
-            """
-            (1) 画面をクリア
-            (2) 左上に曲名を表示
-            (3) スペクトルを表示
-            """
-            import os
-            os.system('clear')
-            self.output_music_name(self.music_name)
-            for y in range(32)[::-1]:
-                for x in spec:
-                    if x > y:
-                        sys.stdout.write('___ ')
-                    else:
-                        sys.stdout.write('    ')
-                sys.stdout.write('\n')
+            self.host_so.settimeout(None)
+            send_data = np.array(spec, dtype=np.uint8)
+            self.host_so.send(send_data)
         else:
             raise exceptions.NotImplementedError

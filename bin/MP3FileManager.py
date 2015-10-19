@@ -20,11 +20,11 @@ class MP3FileManager(LM.ListManager):
     def __download_list(self):
         try:
             file_list = self.dbd.do_ls()
-            print('--- Network mode ---')
+            #print('--- Network mode ---')
             self.__is_connected = True
         except MaxRetryError:
             file_list = os.listdir(self.__DOWNLOAD_PATH)
-            print('--- Local mode ---')
+            #print('--- Local mode ---')
             self.__is_connected = False
         return filter(lambda f: f.endswith('.mp3'), file_list)
 
