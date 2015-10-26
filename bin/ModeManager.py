@@ -3,9 +3,9 @@
 import ListManager as LM
 
 class ModeManager(LM.ListManager):
-    MODE_SINGLE     = 'single'
-    MODE_CONTINUOUS = 'continuous'
-    MODE_RANDOM     = 'random'
+    MODE_SINGLE     = u'選択再生モード'
+    MODE_CONTINUOUS = u'連続再生モード'
+    MODE_RANDOM     = u'ランダム再生モード'
 
     def __init__(self):
         mode_list = [self.MODE_SINGLE,

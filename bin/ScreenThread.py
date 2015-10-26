@@ -5,7 +5,7 @@ import curses
 import FontManager
 import numpy as np
 
-WIN_WIDHT = 256
+WIN_WIDTH = 256
 WIN_HEIGHT = 32
 
 POLLING_SEC = 0.050
@@ -43,7 +43,7 @@ class ScreenThread(threading.Thread):
         ・表示タイミングをdoupdate()時に設定
         ・getch()を非ブロッキング動作に設定
         """
-        self.win = curses.newwin(WIN_HEIGHT, WIN_WIDHT)
+        self.win = curses.newwin(WIN_HEIGHT, WIN_WIDTH)
         self.win.noutrefresh()
         self.win.timeout(0)
 
@@ -64,7 +64,10 @@ class ScreenThread(threading.Thread):
             if data[0] == 0:#control
                 cmd = data[1]
                 if cmd & 0x1:
-                    self.bitmap = [0]
+                    self.bitmap = [0 for i in xrange(WIN_WIDTH)]
+                    self.draw_bitmap(0, 0)
+                    self.bitmap = []
+                    self.base_x = 0
                 self.is_display_enable = True if cmd & 0x2 else False
                 self.is_scroll_enable = True if cmd & 0x4 else False
             elif data[0] == 1:#bitmap
@@ -82,7 +85,7 @@ class ScreenThread(threading.Thread):
                     self.rest_scroll_sec = 0
                     self.base_x -= 2
                     if self.base_x <= -len(self.bitmap) * 2:
-                        self.base_x = WIN_WIDHT
+                        self.base_x = WIN_WIDTH
             self.draw_bitmap(self.base_x, 0)
 
         """ 画面を更新 """
@@ -105,7 +108,7 @@ class ScreenThread(threading.Thread):
     def draw_bitmap(self, base_x, base_y):
         for x in range(len(self.bitmap)):
             draw_x = base_x + x*2
-            if not (0 <= draw_x and draw_x < WIN_WIDHT - 1):
+            if not (0 <= draw_x and draw_x < WIN_WIDTH - 1):
                 continue
             for y in range(8):
                 draw_y = base_y + y

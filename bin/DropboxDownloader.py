@@ -30,5 +30,5 @@ class DropboxDownloader:
     def do_get(self, from_path, to_path):
         to_file = open(to_path, "wb")
         f, metadata = self.api_client.get_file_and_metadata(from_path)
-        print 'Metadata:', metadata
+        #print 'Metadata:', metadata
         to_file.write(f.read())

@@ -51,7 +51,9 @@ while True:
 
     elif state == STATE_MODE:
         cur_mode = mode.get()
-        print('[%d/%d] %s' % (cur_mode['pos'], cur_mode['len'], cur_mode['name']))
+        io.output_control(bitmap_clear=True, display_enable=False, scroll_enable=False)
+        io.output_string('[%d/%d] %s' % (cur_mode['pos'], cur_mode['len'], cur_mode['name']))
+        io.output_control(bitmap_clear=False, display_enable=True, scroll_enable=False)
         s = io.input()
         if s == IO.IOWrapper.INPUT_NEXT:
             mode.next()
@@ -67,7 +69,11 @@ while True:
             state = STATE_QUIT
 
     elif state == STATE_SELECT:
-        io.output_music_name(mp3.get()['name'])
+        cur_music = mp3.get()
+        io.output_control(bitmap_clear=True, display_enable=False, scroll_enable=False)
+        """ WORKAROUND: 最後にスペースを入れることで文字列末尾潰れを防止 """
+        io.output_string(u'[%d/%d] %s' % (cur_music['pos'], cur_music['len'], cur_music['name'].strip(u'.mp3')) + u' ')
+        io.output_control(bitmap_clear=False, display_enable=True, scroll_enable=False)
         """
         単曲再生: 選曲
         連続再生/ランダム再生: スキップ
@@ -86,8 +92,19 @@ while True:
                 state = STATE_QUIT
 
     elif state == STATE_PREPARE:
+        io.output_control(bitmap_clear=True, display_enable=False, scroll_enable=False)
+        io.output_string(u'　Ｎｏｗ　Ｄｏｗｎｌｏａｄｉｎｇ')
+        io.output_control(bitmap_clear=False, display_enable=True, scroll_enable=False)
         mp3.download_file()
+
+        io.output_control(bitmap_clear=True, display_enable=False, scroll_enable=False)
+        io.output_string(u'　Ｎｏｗ　Ｃｏｎｖｅｒｔｉｎｇ')
+        io.output_control(bitmap_clear=False, display_enable=True, scroll_enable=False)
         stft.open(mp3.to_wave())
+
+        io.output_control(bitmap_clear=True, display_enable=False, scroll_enable=False)
+        io.output_string(u'♪' + mp3.get()['name'].strip(u'.mp3'))
+        io.output_control(bitmap_clear=False, display_enable=True, scroll_enable=True)
         stft.start()
         state = STATE_PLAY
 
@@ -103,6 +120,7 @@ while True:
             vol.plus(-5)
         elif s == IO.IOWrapper.INPUT_SELECT:
             stft.stop()
+            io.output_control(bitmap_clear=False, display_enable=True, scroll_enable=False)
             state = STATE_STOP
         elif s == IO.IOWrapper.INPUT_QUIT:
             state = STATE_QUIT
@@ -111,6 +129,7 @@ while True:
         s = io.input()
         if s == IO.IOWrapper.INPUT_SELECT:
             stft.start()
+            io.output_control(bitmap_clear=False, display_enable=True, scroll_enable=True)
             state = STATE_PLAY
         elif s == IO.IOWrapper.INPUT_QUIT:
             state = STATE_QUIT

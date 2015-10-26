@@ -66,6 +66,21 @@ class IOWrapper:
         else:
             raise exceptions.NotImplementedError
 
+    def output_control(self, bitmap_clear=False,
+                       display_enable=False,
+                       scroll_enable=False):
+        send_data = [ID_CONTROL]
+        cmd = 0
+        if bitmap_clear:
+            cmd |= BITMAP_CLEAR
+        if display_enable:
+            cmd |= DISPLAY_ENABLE
+        if scroll_enable:
+            cmd |= SCROLL_ENABLE
+        send_data.append(cmd)
+        send_data = np.array(send_data, dtype=np.uint8)
+        self.host_so.send(send_data)
+
     """
     曲名文字列(UTF-8)
     ---> SJIS文字列
@@ -73,15 +88,10 @@ class IOWrapper:
     ---> ビットマップ配列を8バイト長に切り上げ(0埋め)
     ---> 8バイト毎にビットマップパケットを構築して送信
     """
-    def output_music_name(self, music_name):
+    def output_string(self, unicode_str):
         """ encode('shift-jis')だとエラーになる """
-        sjis_str = music_name.encode('cp932')
+        sjis_str = unicode_str.encode('cp932')
         bitmap = self.font.str_to_bitmap(sjis_str, raw=True)
-
-        send_data = [ID_CONTROL]
-        send_data.append(BITMAP_CLEAR)
-        send_data = np.array(send_data, dtype=np.uint8)
-        self.host_so.send(send_data)
 
         i = 0
         while True:
@@ -98,11 +108,6 @@ class IOWrapper:
             send_data = np.array(send_data, dtype=np.uint8)
             self.host_so.send(send_data)
             i += 1
-
-        send_data = [ID_CONTROL]
-        send_data.append(DISPLAY_ENABLE | SCROLL_ENABLE)
-        send_data = np.array(send_data, dtype=np.uint8)
-        self.host_so.send(send_data)
 
     def output_spectrum(self, spec):
         if self.dev is None:
