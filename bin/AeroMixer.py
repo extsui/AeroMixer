@@ -71,8 +71,7 @@ while True:
     elif state == STATE_SELECT:
         cur_music = mp3.get()
         io.output_control(bitmap_clear=True, display_enable=False, scroll_enable=False)
-        """ WORKAROUND: 最後にスペースを入れることで文字列末尾潰れを防止 """
-        io.output_string(u'[%d/%d] %s' % (cur_music['pos'], cur_music['len'], cur_music['name'].strip(u'.mp3')) + u' ')
+        io.output_string(u'[%d/%d] %s' % (cur_music['pos'], cur_music['len'], cur_music['name'].strip(u'.mp3')))
         io.output_control(bitmap_clear=False, display_enable=True, scroll_enable=False)
         """
         単曲再生: 選曲
@@ -93,12 +92,12 @@ while True:
 
     elif state == STATE_PREPARE:
         io.output_control(bitmap_clear=True, display_enable=False, scroll_enable=False)
-        io.output_string(u'　Ｎｏｗ　Ｄｏｗｎｌｏａｄｉｎｇ')
+        io.output_string(u'◆Ｎｏｗ Ｄｏｗｎｌｏａｄｉｎｇ')
         io.output_control(bitmap_clear=False, display_enable=True, scroll_enable=False)
         mp3.download_file()
 
         io.output_control(bitmap_clear=True, display_enable=False, scroll_enable=False)
-        io.output_string(u'　Ｎｏｗ　Ｃｏｎｖｅｒｔｉｎｇ')
+        io.output_string(u'◆Ｎｏｗ Ｃｏｎｖｅｒｔｉｎｇ')
         io.output_control(bitmap_clear=False, display_enable=True, scroll_enable=False)
         stft.open(mp3.to_wave())
 

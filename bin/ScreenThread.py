@@ -4,6 +4,7 @@ import threading
 import curses
 import FontManager
 import numpy as np
+import PacketFormat as PF
 
 WIN_WIDTH = 256
 WIN_HEIGHT = 32
@@ -61,19 +62,19 @@ class ScreenThread(threading.Thread):
         try:
             recv_data = self.dev_so.recv(64)
             data = np.fromstring(recv_data, dtype=np.uint8)
-            if data[0] == 0:#control
+            if data[0] == PF.ID_CONTROL:
                 cmd = data[1]
                 if cmd & 0x1:
                     self.bitmap = [0 for i in xrange(WIN_WIDTH)]
                     self.draw_bitmap(0, 0)
                     self.bitmap = []
                     self.base_x = 0
-                self.is_display_enable = True if cmd & 0x2 else False
-                self.is_scroll_enable = True if cmd & 0x4 else False
-            elif data[0] == 1:#bitmap
-                self.bitmap.extend(data[1:9])
-            elif data[0] == 2:#spec
-                self.draw_spec(data[1:33])
+                self.is_display_enable = True if cmd & PF.CONTROL_DISPLAY_ENABLE else False
+                self.is_scroll_enable = True if cmd & PF.CONTROL_SCROLL_ENABLE else False
+            elif data[0] == PF.ID_BITMAP:
+                self.bitmap.extend(data[1:1+PF.BITMAP_SIZE])
+            elif data[0] == PF.ID_SPECTRUM:
+                self.draw_spec(data[1:1+PF.SPECTRUM_SIZE])
         except:
             pass
 

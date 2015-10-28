@@ -7,19 +7,7 @@ import ScreenThread
 import threading
 import numpy as np
 import FontManager as font
-
-"""
-ホストtoデバイスパケットは以下の3種類
-(1) 制御パケット
-(2) ビットマップパケット
-(3) スペクトルパケット
-"""
-ID_CONTROL  = 0
-BITMAP_CLEAR   = 0x1
-DISPLAY_ENABLE = 0x2
-SCROLL_ENABLE  = 0x4
-ID_BITMAP   = 1
-ID_SPECTRUM = 2
+import PacketFormat as PF
 
 class IOWrapper:
     INPUT_NEXT   = '+'
@@ -69,14 +57,14 @@ class IOWrapper:
     def output_control(self, bitmap_clear=False,
                        display_enable=False,
                        scroll_enable=False):
-        send_data = [ID_CONTROL]
+        send_data = [PF.ID_CONTROL]
         cmd = 0
         if bitmap_clear:
-            cmd |= BITMAP_CLEAR
+            cmd |= PF.CONTROL_BITMAP_CLEAR
         if display_enable:
-            cmd |= DISPLAY_ENABLE
+            cmd |= PF.CONTROL_DISPLAY_ENABLE
         if scroll_enable:
-            cmd |= SCROLL_ENABLE
+            cmd |= PF.CONTROL_SCROLL_ENABLE
         send_data.append(cmd)
         send_data = np.array(send_data, dtype=np.uint8)
         self.host_so.send(send_data)
@@ -85,34 +73,25 @@ class IOWrapper:
     曲名文字列(UTF-8)
     ---> SJIS文字列
     ---> ビットマップ配列
-    ---> ビットマップ配列を8バイト長に切り上げ(0埋め)
-    ---> 8バイト毎にビットマップパケットを構築して送信
+    ---> ビットマップ配列を4バイト毎に区切って送信
+         (半角文字が最小4バイトであるため)
+    ---> 4バイト毎にビットマップパケットを構築して送信
     """
     def output_string(self, unicode_str):
         """ encode('shift-jis')だとエラーになる """
         sjis_str = unicode_str.encode('cp932')
         bitmap = self.font.str_to_bitmap(sjis_str, raw=True)
 
-        i = 0
-        while True:
-            send_data = [ID_BITMAP]
-            data = bitmap[i*8:(i+1)*8]
-            send_data.extend(data)
-            if len(data) is 0:
-                break
-            elif (0 < len(data) and len(data) < 8):
-                addnum = 8 - len(data)
-                for j in range(addnum):
-                    send_data.append(0)
-                break
+        for i in range(0, len(bitmap), PF.BITMAP_SIZE):
+            send_data = [PF.ID_BITMAP]
+            send_data.extend(bitmap[i:i+PF.BITMAP_SIZE])
             send_data = np.array(send_data, dtype=np.uint8)
             self.host_so.send(send_data)
-            i += 1
 
     def output_spectrum(self, spec):
         if self.dev is None:
             self.host_so.settimeout(None)
-            send_data = [ID_SPECTRUM]
+            send_data = [PF.ID_SPECTRUM]
             send_data.extend(spec)
             send_data = np.array(send_data, dtype=np.uint8)
             self.host_so.send(send_data)
