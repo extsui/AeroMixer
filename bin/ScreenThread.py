@@ -56,7 +56,18 @@ class ScreenThread(threading.Thread):
         c = self.win.getch()
         if c is not curses.ERR:
             if 0 <= c and c <= 255:
-                self.dev_so.send(chr(c))
+                c = chr(c)
+                data = 0
+                if c == '+':
+                    data |= PF.INPUT_NEXT
+                if c == '-':
+                    data |= PF.INPUT_PREV
+                if c == 's':
+                    data |= PF.INPUT_SELECT
+                if c == 'q':
+                    data |= PF.INPUT_QUIT
+                send_data = np.array(data, dtype=np.uint8)
+                self.dev_so.send(send_data)
 
         """ 受信に成功したら対応する処理を実行し，タイムアウト時はnop """
         try:

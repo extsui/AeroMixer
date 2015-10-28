@@ -10,11 +10,6 @@ import FontManager as font
 import PacketFormat as PF
 
 class IOWrapper:
-    INPUT_NEXT   = '+'
-    INPUT_PREV   = '-'
-    INPUT_SELECT = 's'
-    INPUT_QUIT   = 'q'
-
     def __init__(self, usb=False):
         """ 出力先をUSBか標準出力にするかを設定 """
         """ 具体的な処理の違いはopen()以降 """
@@ -47,7 +42,8 @@ class IOWrapper:
         if self.dev is None:
             self.host_so.settimeout(timeout)
             try:
-                in_data = self.host_so.recv(1)
+                data = self.host_so.recv(1)
+                in_data = ord(data)
             except:
                 in_data = None
             return in_data

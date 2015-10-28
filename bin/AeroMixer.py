@@ -5,6 +5,7 @@ import STFTAudio as STFT
 import IOWrapper as IO
 import ModeManager as MM
 import VolumeController as VC
+import PacketFormat as PF
 
 import sys
 import exceptions
@@ -55,17 +56,17 @@ while True:
         io.output_string('[%d/%d] %s' % (cur_mode['pos'], cur_mode['len'], cur_mode['name']))
         io.output_control(bitmap_clear=False, display_enable=True, scroll_enable=False)
         s = io.input()
-        if s == IO.IOWrapper.INPUT_NEXT:
+        if s == PF.INPUT_NEXT:
             mode.next()
-        elif s == IO.IOWrapper.INPUT_PREV:
+        elif s == PF.INPUT_PREV:
             mode.prev()
-        elif s == IO.IOWrapper.INPUT_SELECT:
+        elif s == PF.INPUT_SELECT:
             if mode.is_require_name_sort() is True:
                 mp3.sort(MP3.MP3FileManager.SORT_BY_NAME)
             elif mode.is_require_random_sort() is True:
                 mp3.sort(MP3.MP3FileManager.SORT_BY_RANDOM)
             state = STATE_SELECT
-        elif s == IO.IOWrapper.INPUT_QUIT:
+        elif s == PF.INPUT_QUIT:
             state = STATE_QUIT
 
     elif state == STATE_SELECT:
@@ -81,13 +82,13 @@ while True:
             state = STATE_PREPARE
         else:
             s = io.input()
-            if s == IO.IOWrapper.INPUT_NEXT:
+            if s == PF.INPUT_NEXT:
                 mp3.next()
-            elif s == IO.IOWrapper.INPUT_PREV:
+            elif s == PF.INPUT_PREV:
                 mp3.prev()
-            elif s == IO.IOWrapper.INPUT_SELECT:
+            elif s == PF.INPUT_SELECT:
                 state = STATE_PREPARE
-            elif s == IO.IOWrapper.INPUT_QUIT:
+            elif s == PF.INPUT_QUIT:
                 state = STATE_QUIT
 
     elif state == STATE_PREPARE:
@@ -113,24 +114,24 @@ while True:
         s = io.input(timeout=STFT.STFTAudio.STFT_INTERVAL)
         if s is None:
             io.output_spectrum(stft.stft())
-        elif s == IO.IOWrapper.INPUT_NEXT:
+        elif s == PF.INPUT_NEXT:
             vol.plus(5)
-        elif s == IO.IOWrapper.INPUT_PREV:
+        elif s == PF.INPUT_PREV:
             vol.plus(-5)
-        elif s == IO.IOWrapper.INPUT_SELECT:
+        elif s == PF.INPUT_SELECT:
             stft.stop()
             io.output_control(bitmap_clear=False, display_enable=True, scroll_enable=False)
             state = STATE_STOP
-        elif s == IO.IOWrapper.INPUT_QUIT:
+        elif s == PF.INPUT_QUIT:
             state = STATE_QUIT
 
     elif state == STATE_STOP:
         s = io.input()
-        if s == IO.IOWrapper.INPUT_SELECT:
+        if s == PF.INPUT_SELECT:
             stft.start()
             io.output_control(bitmap_clear=False, display_enable=True, scroll_enable=True)
             state = STATE_PLAY
-        elif s == IO.IOWrapper.INPUT_QUIT:
+        elif s == PF.INPUT_QUIT:
             state = STATE_QUIT
 
     elif state == STATE_FINISH:
