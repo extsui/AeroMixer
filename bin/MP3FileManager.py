@@ -23,10 +23,18 @@ class MP3FileManager(LM.ListManager):
             #print('--- Network mode ---')
             self.__is_connected = True
         except MaxRetryError:
-            file_list = os.listdir(self.__DOWNLOAD_PATH)
+            file_list = self.local_ls()
             #print('--- Local mode ---')
             self.__is_connected = False
-        return filter(lambda f: f.endswith('.mp3'), file_list)
+        return filter(lambda f: f.endswith(u'.mp3'), file_list)
+
+    """ ローカル版はtype=strからutf-8に変換する必要有 """
+    def local_ls(self):
+        file_str_list = os.listdir(self.__DOWNLOAD_PATH)
+        file_list = []
+        for f in file_str_list:
+            file_list.append(f.decode('utf-8'))
+        return file_list
 
     def download_file(self):
         from_path = self.get()['name']
