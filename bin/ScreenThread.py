@@ -35,9 +35,10 @@ class ScreenThread(threading.Thread):
         curses.wrapper(self.curses_main)
 
     def curses_main(self, stdscr):
-        """ エコーバックOFF，バッファリングOFF """
+        """ エコーバックOFF，バッファリングOFF，カーソルOFF """
         curses.noecho()
         curses.cbreak()
+        curses.curs_set(0)
 
         """ 
         ・新規ウィンドウを作成

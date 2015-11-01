@@ -7,10 +7,10 @@ import wave
 
 class STFTAudio:
     """ スペクトル表示のパラメータ """
-    STFT_SIZE = 4096
+    STFT_SIZE = 8192
     FREQ_PROBE_NUM = 32
     LOWER_HERTZ = 20.
-    UPPER_HERTZ = 20000.
+    UPPER_HERTZ = 10000.
 
     """ FFTの周期(秒単位) """
     STFT_INTERVAL = 0.050
