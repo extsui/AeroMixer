@@ -30,13 +30,14 @@ class IOWrapper:
             self.screen.start()
         else:
             self.dev = UsbDevice.UsbDevice(0x0000, 0x0000)
+            self.dev.open()
 
     def close(self):
         if self.dev is None:
             self.kill_event.set()
             self.screen.join()
         else:
-            pass
+            self.dev.close()
 
     def input(self, timeout=None):
         if self.dev is None:
@@ -48,7 +49,19 @@ class IOWrapper:
                 in_data = None
             return in_data
         else:
-            raise exceptions.NotImplementedError
+            """ USBのタイムアウトはミリ秒単位 """
+            if timeout is None:
+                timeout = 0
+            else:
+                #timeout = 500#int(timeout * 1000)
+                timeout = int(timeout * 1000)
+            try:
+                data = self.dev.read(1, timeout)
+                in_data = data[0]
+                print(in_data)
+            except:
+                in_data = None
+            return in_data
 
     def output_control(self, bitmap_clear=False,
                        display_enable=False,
@@ -63,7 +76,10 @@ class IOWrapper:
             cmd |= PF.CONTROL_SCROLL_ENABLE
         send_data.append(cmd)
         send_data = np.array(send_data, dtype=np.uint8)
-        self.host_so.send(send_data)
+        if self.dev is None:
+            self.host_so.send(send_data)
+        else:
+            self.dev.write(send_data, None);
 
     """
     曲名文字列(UTF-8)
@@ -82,14 +98,17 @@ class IOWrapper:
             send_data = [PF.ID_BITMAP]
             send_data.extend(bitmap[i:i+PF.BITMAP_SIZE])
             send_data = np.array(send_data, dtype=np.uint8)
-            self.host_so.send(send_data)
+            if self.dev is None:
+                self.host_so.send(send_data)
+            else:
+                self.dev.write(send_data, None)
 
     def output_spectrum(self, spec):
+        send_data = [PF.ID_SPECTRUM]
+        send_data.extend(spec)
+        send_data = np.array(send_data, dtype=np.uint8)
         if self.dev is None:
             self.host_so.settimeout(None)
-            send_data = [PF.ID_SPECTRUM]
-            send_data.extend(spec)
-            send_data = np.array(send_data, dtype=np.uint8)
             self.host_so.send(send_data)
         else:
-            raise exceptions.NotImplementedError
+            self.dev.write(send_data, None)

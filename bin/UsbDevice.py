@@ -44,9 +44,9 @@ class UsbDevice:
         self.__configuration()
 
     def close(self):
+        usb.util.release_interface(self.dev, self.interface)
         if not self.dev.is_kernel_driver_active(self.interface):
             self.dev.attach_kernel_driver(self.interface)
-        usb.util.release_interface(self.dev, self.interface)
 
     def read(self, size, timeout=None):
         return self.read_ep.read(size, timeout)
