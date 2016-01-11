@@ -13,7 +13,7 @@ POLLING_SEC = 0.050
 SCROLL_SEC = POLLING_SEC * 1.5
 
 class ScreenThread(threading.Thread):
-    def __init__(self, dev_so, kill_event):
+    def __init__(self, dev_so):
         """
         ・ホストと通信するためのソケット
         ・タイムアウト有りのブロッキング動作
@@ -21,8 +21,6 @@ class ScreenThread(threading.Thread):
         self.dev_so = dev_so
         self.dev_so.setblocking(1)
         self.dev_so.settimeout(POLLING_SEC)
-        """ ホストからのスレッド終了命令用 """
-        self.kill_event = kill_event
         """ 画面表示制御 """
         self.bitmap = [0]
         self.is_display_enable = False
@@ -49,8 +47,9 @@ class ScreenThread(threading.Thread):
         self.win.noutrefresh()
         self.win.timeout(0)
 
-        while not self.kill_event.is_set():
-            self.main_loop()
+        while True:
+            if self.main_loop() is False:
+                break
 
     def main_loop(self):
         """ 入力の有無を確認し，あればホストに送信 """
@@ -76,7 +75,9 @@ class ScreenThread(threading.Thread):
             data = np.fromstring(recv_data, dtype=np.uint8)
             if data[0] == PF.ID_CONTROL:
                 cmd = data[1]
-                if cmd & 0x1:
+                if cmd & PF.CONTROL_SHUTDOWN:
+                    return False
+                if cmd & PF.CONTROL_BITMAP_CLEAR:
                     self.bitmap = [0 for i in xrange(WIN_WIDTH)]
                     self.draw_bitmap(0, 0)
                     self.bitmap = []
@@ -104,6 +105,8 @@ class ScreenThread(threading.Thread):
         """ 画面を更新 """
         self.win.refresh()
         curses.doupdate()
+
+        return True
 
     def draw_spec(self, spec):
         y_pos = 0

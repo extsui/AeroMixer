@@ -4,7 +4,6 @@ import exceptions
 import UsbDevice
 import socket
 import ScreenThread
-import threading
 import numpy as np
 import FontManager as font
 import PacketFormat as PF
@@ -23,10 +22,8 @@ class IOWrapper:
             self.dev = None
             self.host_so, dev_so = \
                 socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM, 0)
-            self.kill_event = threading.Event()
-            self.kill_event.clear()
             """ ScreenThreadは非同期動作であり，ソケットを通して通信 """
-            self.screen = ScreenThread.ScreenThread(dev_so, self.kill_event)
+            self.screen = ScreenThread.ScreenThread(dev_so)
             self.screen.start()
         else:
             self.dev = UsbDevice.UsbDevice(0x0000, 0x0000)
@@ -34,7 +31,7 @@ class IOWrapper:
 
     def close(self):
         if self.dev is None:
-            self.kill_event.set()
+            self.output_shutdown()
             self.screen.join()
         else:
             self.dev.close()
@@ -63,6 +60,18 @@ class IOWrapper:
                 in_data = None
             return in_data
 
+    def output(self, send_data):
+        send_data = np.array(send_data, dtype=np.uint8)
+        if self.dev is None:
+            self.host_so.send(send_data)
+        else:
+            self.dev.write(send_data, None)
+
+    def output_shutdown(self):
+        send_data = [PF.ID_CONTROL]
+        send_data.append(PF.CONTROL_SHUTDOWN)
+        self.output(send_data)
+
     def output_control(self, bitmap_clear=False,
                        display_enable=False,
                        scroll_enable=False):
@@ -75,11 +84,7 @@ class IOWrapper:
         if scroll_enable:
             cmd |= PF.CONTROL_SCROLL_ENABLE
         send_data.append(cmd)
-        send_data = np.array(send_data, dtype=np.uint8)
-        if self.dev is None:
-            self.host_so.send(send_data)
-        else:
-            self.dev.write(send_data, None);
+        self.output(send_data)
 
     """
     曲名文字列(UTF-8)
@@ -97,18 +102,9 @@ class IOWrapper:
         for i in range(0, len(bitmap), PF.BITMAP_SIZE):
             send_data = [PF.ID_BITMAP]
             send_data.extend(bitmap[i:i+PF.BITMAP_SIZE])
-            send_data = np.array(send_data, dtype=np.uint8)
-            if self.dev is None:
-                self.host_so.send(send_data)
-            else:
-                self.dev.write(send_data, None)
+            self.output(send_data)
 
     def output_spectrum(self, spec):
         send_data = [PF.ID_SPECTRUM]
         send_data.extend(spec)
-        send_data = np.array(send_data, dtype=np.uint8)
-        if self.dev is None:
-            self.host_so.settimeout(None)
-            self.host_so.send(send_data)
-        else:
-            self.dev.write(send_data, None)
+        self.output(send_data)
