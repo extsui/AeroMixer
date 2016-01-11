@@ -30,8 +30,8 @@ class IOWrapper:
             self.dev.open()
 
     def close(self):
+        self.output_shutdown()
         if self.dev is None:
-            self.output_shutdown()
             self.screen.join()
         else:
             self.dev.close()
