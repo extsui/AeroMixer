@@ -10,7 +10,7 @@ import alsaaudio
 class VolumeController:
 
     def __init__(self):
-        self.mixer = alsaaudio.Mixer('Master')
+        self.mixer = alsaaudio.Mixer('PCM')
 
     def plus(self, num):
         """ R/Lの音量は同じと仮定して一方のみの音量を使用 """

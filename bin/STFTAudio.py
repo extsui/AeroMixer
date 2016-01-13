@@ -9,7 +9,7 @@ import time
 
 class STFTAudio:
     """ aplayコマンドにSIGSTOPを送信して停止するまでの時間 """
-    APLAY_STOP_DELAY = 0.5
+    APLAY_STOP_DELAY = 0.4
 
     """ スペクトル表示のパラメータ """
     STFT_SIZE = 8192
