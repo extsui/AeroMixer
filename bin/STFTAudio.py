@@ -2,10 +2,15 @@
 # -*- coding: utf-8 -*-
 import numpy as np
 import scipy as sp
-import pyaudio
 import wave
+import subprocess
+import signal
+import time
 
 class STFTAudio:
+    """ aplayコマンドにSIGSTOPを送信して停止するまでの時間 """
+    APLAY_STOP_DELAY = 0.5
+
     """ スペクトル表示のパラメータ """
     STFT_SIZE = 8192
     FREQ_PROBE_NUM = 32
@@ -51,21 +56,13 @@ class STFTAudio:
         return freq_probe_index_list
 
     def __init__(self):
-        self.pa = pyaudio.PyAudio()
-        self.stream = None
         self.wavefile = None
         self.wavedata = None
         self.hamming_win = sp.hamming(self.STFT_SIZE)
-        self.frame_pos = 0
         self.freq_probe_index_list = self.__fftprobe(self.STFT_SIZE,
                                                      self.FREQ_PROBE_NUM,
                                                      self.LOWER_HERTZ,
                                                      self.UPPER_HERTZ)
-
-    def __callback(self, in_data, frame_count, time_info, status):
-        self.frame_pos += frame_count
-        data = self.wavefile.readframes(frame_count)
-        return (data, pyaudio.paContinue)
 
     def open(self, wavefile):
         self.wavefile = wave.open(wavefile, 'rb')
@@ -73,36 +70,31 @@ class STFTAudio:
         # -1~+1の範囲に正規化
         self.wavedata = sp.fromstring(frames, dtype='int16') / 32768.0
         self.wavefile.rewind()
-        self.stream = self.pa.open(format=self.pa.get_format_from_width(self.wavefile.getsampwidth()),
-                                   channels=self.wavefile.getnchannels(),
-                                   rate=self.wavefile.getframerate(),
-                                   output=True,
-                                   stream_callback=self.__callback)
-    
-    """
-    |-------+-----------+------------|
-    | state | is_active | is_stopped |
-    |-------+-----------+------------|
-    | INIT  | F         | F          |
-    | LOAD  | F         | F          |
-    | PLAY  | T         | F          |
-    | STOP  | F         | T          |
-    |-------+-----------+------------|
-    """
-    def is_playing(self):
-        return self.stream.is_active() and not self.stream.is_stopped()
+        self.proc = subprocess.Popen(['aplay', '-q', wavefile])
+        # 再生開始時のずれ対策のため，start()まで待ち合わせ
+        self.proc.send_signal(signal.SIGSTOP)
+        self.start_time = time.time() # 再生開始時刻
+        self.stop_time = time.time()  # 停止時刻
+        self.spend_time = 0.0         # 停止時間
 
-    def is_stopping(self):
-        return not self.stream.is_active() and self.stream.is_stopped()
+    def is_playing(self):
+        return self.proc.poll() is None and self.playing
 
     def start(self):
-        self.stream.start_stream()
+        self.proc.send_signal(signal.SIGCONT)
+        self.playing = True
+        self.spend_time += time.time() - self.stop_time
 
     def stop(self):
-        self.stream.stop_stream()
+        self.proc.send_signal(signal.SIGSTOP)
+        self.playing = False
+        self.stop_time = time.time() + self.APLAY_STOP_DELAY
 
     def stft(self):
-        x = self.wavedata[self.frame_pos:self.frame_pos+self.STFT_SIZE]
+        frame_time = time.time() - self.start_time - self.spend_time
+        frame_pos = frame_time * self.wavefile.getframerate()
+
+        x = self.wavedata[frame_pos:frame_pos+self.STFT_SIZE]
         # 一番最後はSTFTできないのでゼロ埋めダミーデータで代用
         if len(x) != self.STFT_SIZE:
             return map(int, np.zeros(len(self.freq_probe_index_list)))
@@ -115,17 +107,11 @@ class STFTAudio:
         return spectrum
 
     def close(self):
-        self.frame_pos = 0
-        self.stop()
-        self.stream.close()
+        self.proc.wait()
         self.wavefile.close()
 
     def __del__(self):
-        """
-        close()で行っていたが，2度目のopen()に失敗するため，
-        デストラクタでterminate()を呼び出す．
-        """
-        self.pa.terminate()
+        self.proc.kill()
 
 if __name__ == '__main__':
     import sys
@@ -140,7 +126,7 @@ if __name__ == '__main__':
     stft.open(wavefile)
     stft.start()
 
-    while stft.is_playing() or stft.is_stopping():
+    while stft.is_playing():
         import time
         s = raw_input('(s|p|f)> ')
         if s == 's':
