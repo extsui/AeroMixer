@@ -65,7 +65,10 @@ class IOWrapper:
         if self.dev is None:
             self.host_so.send(send_data)
         else:
-            self.dev.write(send_data, None)
+            try:
+                self.dev.write(send_data, None)
+            except:
+                print('output: timeout')
 
     def output_shutdown(self):
         send_data = [PF.ID_CONTROL]
